@@ -1,0 +1,202 @@
+{
+  "name": "Build and AI agent n8n - gmail",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1936996-c354-4ef6-bf73-c9fa8644ad23",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {
+          "q": "-from:me",
+          "readStatus": "unread"
+        }
+      },
+      "id": "aac7f1fa-5a75-44c3-b4b4-8d7eac998d02",
+      "name": "Get Unread Emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -32,
+        288
+      ],
+      "webhookId": "6a34cc1c-ecde-4818-9f5b-45346e3eefe3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "IGCawwnd2wYM0ueO",
+          "name": "AI_CEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From: {{ $json.From }}\nSubject: {{ $json.Subject }}\nContent: {{ $json.snippet }}",
+        "options": {
+          "systemMessage": "You summarise a single email in exactly one line of plain text.\nRules:\n- Maximum 20 words.\n- No greeting, no heading, no label like \"Summary:\", no quotes, no bullet.\n- State what the email is and the key detail (amount, date, ask, or topic).\n- Output only the line, nothing else."
+        }
+      },
+      "id": "c822491a-242c-4a16-8fae-9d7b3fc7ae91",
+      "name": "Summarise Email",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        208,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "7476ef45-edcf-4114-9e30-38ce20d1240e",
+      "name": "Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        512
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "PLP9metMhmALyTYU",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0665d9c4-2b30-4d23-be86-a84e79615923",
+      "name": "Combine Summaries",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        528,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "jaisreemoss@gmail.com",
+        "subject": "=Your {{ $json.output.length }} unread emails",
+        "emailType": "text",
+        "message": "={{ $json.output.map(s => s.replace(/\\s+/g, ' ').trim()).join('\\n') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8d638bc1-5fe2-4491-bfe3-b3e838ade06b",
+      "name": "Send Digest",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        288
+      ],
+      "webhookId": "ac1f9ff7-f7b3-4d08-9346-77b0b7855827",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "IGCawwnd2wYM0ueO",
+          "name": "AI_CEO"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Get Unread Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Unread Emails": {
+      "main": [
+        [
+          {
+            "node": "Summarise Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarise Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise Email": {
+      "main": [
+        [
+          {
+            "node": "Combine Summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Summaries": {
+      "main": [
+        [
+          {
+            "node": "Send Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6fdc15c1-139c-4bbe-8b69-031c8c96bc58",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "933408bea3ea763a57ece224e12d70edbd30736097ad786ad63bea298fb9f73c"
+  },
+  "nodeGroups": [],
+  "id": "Ki7IBvOyPVudiAkD",
+  "tags": []
+}
