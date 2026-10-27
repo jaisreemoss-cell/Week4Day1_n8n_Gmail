@@ -1,0 +1,359 @@
+{
+  "name": "Multiple tool Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fc1475de-7e21-4435-9836-6bdba5060223",
+      "name": "Telegram Trigger",
+      "webhookId": "9e96c2b3-0490-411d-a03d-d18262f9dbb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "N03ZscDep7TgPwAR",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=telegram_ {{ $json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        112,
+        224
+      ],
+      "id": "caef3a30-98ae-4caa-b0a9-c072c8ab5c85",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful agent, Act based on the user input below.\n{{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are an AI Assistant operating inside an automated workflow with access to external tools (Gmail, Calendar, Excel, Docx, SerpAPI).\n\n### Time & Timezone Rules (CRITICAL FOR CALENDAR):\n- Current Reference Time: {{ $now }}\n- User Timezone: IST (Indian Standard Time, UTC+05:30).\n- When creating calendar events or scheduling:\n  1. Convert all user-provided local times (e.g., \"06:00 AM\") strictly into ISO-8601 strings with timezone offset, OR pass explicit start/end times in IST (+05:30).\n  2. For example, \"today 06:00 AM to 06:30 AM IST\" on October 28, 2026 MUST be formatted as:\n     - Start: 2026-10-28T06:00:00+05:30\n     - End: 2026-10-28T06:30:00+05:30\n\n### Intent & Tool Rules:\n1. Calendar Events:\n   - When asked to reschedule, fix, or delete wrong entries, first check/delete previous erroneous events if tool permits, then create the new event with exact titles and time boundaries requested.\n2. Missing Details:\n   - If missing recipient/subject for Gmail or time/title for Calendar, ask the user before calling tools.\n3. Confirmation:\n   - Confirm completed actions clearly (e.g., \"Deleted old entries and booked 'Morning Standup Call' for 06:00 AM - 06:30 AM IST\").",
+          "maxIterations": 5,
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2c53eb94-3104-45d1-b84c-bbcdd9a9f2b2",
+      "name": "Research Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        224
+      ],
+      "id": "ce76cb73-4c42-4844-a380-f6c17cd56af8",
+      "name": "Brain",
+      "credentials": {
+        "openAiApi": {
+          "id": "PLP9metMhmALyTYU",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        0
+      ],
+      "id": "bdc97591-7c40-40e0-9265-a8483ac1d315",
+      "name": "Send a text message",
+      "webhookId": "334687e0-ae82-4f4e-b6ca-11132059da4a",
+      "credentials": {
+        "telegramApi": {
+          "id": "N03ZscDep7TgPwAR",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "zeyakul@yopmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        208
+      ],
+      "id": "1e8f59a8-149c-4fe9-9e1f-7323a2a69de8",
+      "name": "Gmail",
+      "webhookId": "b026bb1a-87e3-4c83-b4d5-36a47de803a7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "IGCawwnd2wYM0ueO",
+          "name": "AI_CEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "amazon",
+        "k": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__k_', ``, 'string') }}",
+        "amazon_domain": "amazon.in",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        240,
+        224
+      ],
+      "id": "cfc62694-1537-4cac-ab16-2f8ff951cb0b",
+      "name": "Serp",
+      "credentials": {
+        "serpApi": {
+          "id": "i16tF2dGrHwpqB9v",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lP8faTd148V67UqD3PgouCc7EgxbOUXPG0my_5nETjA",
+          "mode": "list",
+          "cachedResultName": "student_enrollment_raw",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lP8faTd148V67UqD3PgouCc7EgxbOUXPG0my_5nETjA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 504602272,
+          "mode": "list",
+          "cachedResultName": "Sheet3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lP8faTd148V67UqD3PgouCc7EgxbOUXPG0my_5nETjA/edit#gid=504602272"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        592,
+        224
+      ],
+      "id": "3390a267-a16b-4fd6-b95b-38c375348cdd",
+      "name": "excel",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "l05PAucP42dEvhDI",
+          "name": "AI_CEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "jaisreemoss@gmail.com",
+          "mode": "list",
+          "cachedResultName": "jaisreemoss@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        224
+      ],
+      "id": "3a26723c-c74f-469a-932e-78aa5e8e10a0",
+      "name": "calender",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vdIoc9xDnhfXGCK8",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "default",
+        "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        480,
+        304
+      ],
+      "id": "81d07f8c-e16d-494f-a0b3-d994a20c3789",
+      "name": "Docx",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "P8Om9yGkomVOSQrL",
+          "name": "Google Docs account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brain": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serp": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "excel": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calender": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Docx": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "45cef184-d586-412f-8307-8eeec222ccb5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "933408bea3ea763a57ece224e12d70edbd30736097ad786ad63bea298fb9f73c"
+  },
+  "nodeGroups": [],
+  "id": "ZSWsOxxgtU2lsS1r",
+  "tags": []
+}
